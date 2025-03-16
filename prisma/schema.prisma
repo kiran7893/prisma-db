@@ -1,0 +1,69 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+generator client {
+  provider = "prisma-client-js"
+}
+
+model Project {
+  id        Int      @id @default(autoincrement())
+  name      String
+  users     User[]   @relation("UserProjects")
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        Int      @id @default(autoincrement())
+  email     String   @unique
+  name      String?
+  createdAt DateTime @default(now())
+  
+  // One-to-One Relationship
+  Profile   Profile?
+
+  // One-to-Many Relationship
+  Posts     Post[]
+
+  // Many-to-Many Relationship
+  Projects  Project[] @relation("UserProjects")
+
+  // Self-Referencing Relationship
+  referredBy User?   @relation("Referrals", fields: [referredById], references: [id])
+  referredById Int?
+  referrals   User[] @relation("Referrals")
+}
+
+model Profile {
+  id     Int    @id @default(autoincrement())
+  bio    String
+  userId Int    @unique
+  user   User   @relation(fields: [userId], references: [id])
+}
+model Post {
+  id        Int       @id @default(autoincrement())
+  title     String
+  content   String?
+  authorId  Int
+  author    User      @relation(fields: [authorId], references: [id])
+
+  // Add this missing back-reference
+  comments  Comment[] 
+}
+
+model Comment {
+  id        Int      @id @default(autoincrement())
+  content   String
+  postId    Int
+  post      Post     @relation(fields: [postId], references: [id])
+
+  // Optional: For threaded comments (nested replies)
+  parentId  Int?
+  parent    Comment? @relation("ThreadedComments", fields: [parentId], references: [id])
+  children  Comment[] @relation("ThreadedComments")
+}
